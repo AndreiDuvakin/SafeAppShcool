@@ -1,207 +1,229 @@
 import os
 import sys
+from data.address import Address
+from data.user import User
 
-import requests
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from data import db_session
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDesktopWidget
 from PyQt5 import uic
-from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineSettings
+from PyQt5.QtCore import QPoint, Qt, QUrl
+from PyQt5.QtWebChannel import QWebChannel
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+import urllib.request
 
 
-class Example(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
-        uic.loadUi("des.ui", self)
+        super(MainWindow, self).__init__()
+        uic.loadUi("desing/MainWindow.ui", self)
         self.initUI()
 
-    def getImage(self):
-        self.label_5.setText("")
-        if not self.need_point:
-            map_request = f"http://static-maps.yandex.ru/1.x/?ll={self.dolg},{self.sh}&spn={str(self.masht)},{str(self.masht)}&l={self.map}"
-        else:
-            map_request = f"http://static-maps.yandex.ru/1.x/?ll={self.dolg},{self.sh}&spn={str(self.masht)},{str(self.masht)}&l={self.map}&pt={self.need_point[0]},{self.need_point[1]},pmwtm1"
-        response = requests.get(map_request)
+    def initUI(self):
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        self.pushButton.clicked.connect(self.go_home)
+        self.pushButton_2.clicked.connect(self.go_school)
+        self.pushButton_3.clicked.connect(self.show_info)
+        self.pushButton_4.clicked.connect(self.setting)
+        self.pushButton_5.clicked.connect(self.login)
 
-        if not response:
-            print("Ошибка выполнения запроса:")
-            print(map_request)
-            print("Http статус:", response.status_code, "(", response.reason, ")")
-            self.label_5.setText("Ой, проверьте данные")
+    def login(self):
+        self.login = LoginWindow()
+        self.login.show()
 
-        self.map_file = "map.png"
-        with open(self.map_file, "wb") as file:
-            file.write(response.content)
+    def go_home(self):
+        self.go_home = GoHomeWindow()
+        self.go_home.show()
+
+    def go_school(self):
+        self.go_school = GoSchoolWindow()
+        self.go_school.show()
+
+    def show_info(self):
+        self.info = InfoWindow()
+        self.info.show()
+
+    def setting(self):
+        self.setting = SettingWindow()
+        self.setting.show()
+
+
+class GoHomeWindow(QMainWindow):
+    def __init__(self):
+        super(GoHomeWindow, self).__init__()
+        uic.loadUi("desing/GoHomeWindow.ui", self)
+        self.initUI()
 
     def initUI(self):
-        self.map_file = " "
-        self.map = "-"
-        self.need_point = False
-        self.setWindowTitle('Отображение карты')
-        self.pushButton.clicked.connect(self.click)
-        self.radioButton.toggled.connect(self.onClicked)
-        self.radioButton_2.toggled.connect(self.onClicked)
-        self.radioButton_3.toggled.connect(self.onClicked)
-        self.pushButton_2.clicked.connect(self.find)
-        self.lineEdit_3.setText('1')
-        self.map = "map"
-        self.radioButton.setDown(True)
-        self.pushButton_3.clicked.connect(self.clean_pt)
-        self.post_index = 'Почтовый индекс не найден'
-        self.checkBox.stateChanged.connect(self.index)
-
-    def index(self):
-        if self.checkBox.isChecked():
-            text = self.plainTextEdit.toPlainText() + f'\nПочтовый индекс: {self.post_index}'
-            self.plainTextEdit.clear()
-            self.plainTextEdit.insertPlainText(text)
+        self.session = db_session.create_session()
+        self.pushButton.clicked.connect(self.back)
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        home_address = self.session.query(Address).filter(Address.type == 'home').first()
+        if home_address:
+            home_address = home_address.address
         else:
-            text = self.plainTextEdit.toPlainText().split('\nПочтовый индекс:')[0]
-            self.plainTextEdit.clear()
-            self.plainTextEdit.insertPlainText(text)
-
-    def clean_pt(self):
-        self.lineEdit_4.setText('')
-        self.need_point = False
-        self.plainTextEdit.clear()
-        self.click()
-
-    def find(self):
-        if self.lineEdit_4.text():
-            if self.lineEdit_3.text():
-                self.need_point = False
-                self.plainTextEdit.clear()
-                self.masht = self.lineEdit_3.text()
-                geocoder_api_server = "http://geocode-maps.yandex.ru/1.x/"
-                geocoder_params = {
-                    "apikey": "",
-                    "geocode": self.lineEdit_4.text(),
-                    "format": "json",
-                }
-                response = requests.get(geocoder_api_server, params=geocoder_params)
-                if not response:
-                    print("Ошибка выполнения запроса:")
-                    print(response)
-                    print("Http статус:", response.status_code, "(", response.reason, ")")
-                    self.label_5.setText("Ой, проверьте данные")
-                json_response = response.json()
-                toponym = json_response["response"]["GeoObjectCollection"][
-                    "featureMember"][0]["GeoObject"]
-                toponym_coodrinates = toponym["Point"]["pos"].split()
-                self.need_point = toponym_coodrinates
-                self.dolg, self.sh = toponym_coodrinates[0], toponym_coodrinates[1]
-                self.lineEdit.setText(toponym_coodrinates[1])
-                self.lineEdit_2.setText(toponym_coodrinates[0])
-                self.plainTextEdit.insertPlainText(
-                    f'Адрес: {toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["formatted"]}')
-                try:
-                    self.post_index = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
-                except Exception:
-                    self.post_index = 'Почтовый индекс не найден'
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-            else:
-                self.label_5.setText("Введите масштаб")
+            home_address = None
+        school_address = self.session.query(Address).filter(Address.type == 'school').first()
+        if school_address:
+            school_address = school_address.address
         else:
-            self.label_5.setText("Ой, проверьте данные")
+            school_address = None
+        if school_address and home_address:
+            with open('static/mapbasics_templates.js', 'r', encoding='utf-8') as file:
+                new_file = file.read().split('<point1>')
+                new_file = new_file[0] + f'\'{school_address}\'' + new_file[1]
+                new_file = new_file.split('<point2>')
+                new_file = new_file[0] + f'\'{home_address}\'' + new_file[1]
+                with open('static/mapbasics.js', 'w', encoding='utf-8') as new_js:
+                    new_js.write(new_file)
+            self.web_engine = QWebEngineView(self)
+            channel = QWebChannel()
+            self.web_engine.page().setWebChannel(channel)
+            self.web_engine.setContextMenuPolicy(
+                Qt.NoContextMenu)
+            url_string = urllib.request.pathname2url(
+                os.path.join(os.getcwd(), "templates/map.html"))  # Загрузить локальный файл html
+            self.web_engine.load(QUrl(url_string))
+            self.gridLayout.addWidget(self.web_engine)
 
-    def keyPressEvent(self, ev):
-        k = ev.key()
-        if k == Qt.Key_PageDown:
-            try:
+    def back(self):
+        self.close()
 
-                self.masht = float(self.masht) + (float(self.masht) * 0.5)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-            except FloatingPointError:
-                pass
-        elif k == Qt.Key_PageUp:
-            try:
-                self.masht = float(self.masht) - (float(self.masht) * 0.5)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-            except FloatingPointError:
-                pass
-        elif k == Qt.Key_I:
-            try:
-                self.sh = float(self.sh) + float(self.masht)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-                self.lineEdit.setText(str(self.sh))
-            except FloatingPointError:
-                pass
-        elif k == Qt.Key_M:
-            try:
-                self.sh = float(self.sh) - float(self.masht)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-                self.lineEdit.setText(str(self.sh))
-            except FloatingPointError:
-                pass
-        elif k == Qt.Key_J:
-            try:
-                self.dolg = float(self.dolg) - float(self.masht)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-                self.lineEdit_2.setText(str(self.dolg))
-            except FloatingPointError:
-                pass
-        elif k == Qt.Key_K:
-            try:
-                self.dolg = float(self.dolg) + float(self.masht)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-                self.lineEdit_2.setText(str(self.dolg))
-            except FloatingPointError:
-                pass
 
-    def click(self):
-        self.label_5.setText("")
-        if self.lineEdit.text() != "" and self.lineEdit_2.text() != "" and self.lineEdit_3.text() != "":
-            self.sh = self.lineEdit.text()
-            self.dolg = self.lineEdit_2.text()
-            self.masht = self.lineEdit_3.text()
-            try:
-                self.sh = float(self.sh)
-                self.dolg = float(self.dolg)
-                self.masht = float(self.masht)
-                self.getImage()
-                self.pixmap = QPixmap(self.map_file)
-                self.label_4.move(80, 190)
-                self.label_4.setPixmap(self.pixmap)
-            except ValueError:
-                self.label_5.setText("Ой, проверьте данные")
+class GoSchoolWindow(QMainWindow):
+    def __init__(self):
+        super(GoSchoolWindow, self).__init__()
+        uic.loadUi('desing/GoSchoolWindow.ui', self)
+        self.initUI()
+
+    def initUI(self):
+        self.session = db_session.create_session()
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        self.pushButton.clicked.connect(self.back)
+        home_address = self.session.query(Address).filter(Address.type == 'home').first()
+        if home_address:
+            home_address = home_address.address
         else:
-            pass
+            home_address = None
+        school_address = self.session.query(Address).filter(Address.type == 'school').first()
+        if school_address:
+            school_address = school_address.address
+        else:
+            school_address = None
+        if school_address and home_address:
+            with open('static/mapbasics_templates.js', 'r', encoding='utf-8') as file:
+                new_file = file.read().split('<point1>')
+                new_file = new_file[0] + f'\'{home_address}\'' + new_file[1]
+                new_file = new_file.split('<point2>')
+                new_file = new_file[0] + f'\'{school_address}\'' + new_file[1]
+                with open('static/mapbasics.js', 'w', encoding='utf-8') as new_js:
+                    new_js.write(new_file)
+            cp = QDesktopWidget().availableGeometry().center()
+            self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+            self.pushButton.clicked.connect(self.back)
+            self.web_engine = QWebEngineView(self)
+            channel = QWebChannel()
+            self.web_engine.page().setWebChannel(channel)
+            self.web_engine.setContextMenuPolicy(
+                Qt.NoContextMenu)
+            url_string = urllib.request.pathname2url(
+                os.path.join(os.getcwd(), "templates/map.html"))  # Загрузить локальный файл html
+            self.web_engine.load(QUrl(url_string))
+            self.gridLayout.addWidget(self.web_engine)
 
-    def onClicked(self):
-        radioButton = self.sender()
-        if radioButton.isChecked():
-            if radioButton.text() == "схема":
-                self.map = "map"
-            elif radioButton.text() == "спутник":
-                self.map = "sat"
-            elif radioButton.text() == "гибрид":
-                self.map = "sat,skl"
+    def back(self):
+        self.close()
 
-    def closeEvent(self, event):
-        """При закрытии формы подчищаем за собой"""
-        if self.map_file != " ":
-            os.remove(self.map_file)
+
+class SettingWindow(QMainWindow):
+    def __init__(self):
+        super(SettingWindow, self).__init__()
+        uic.loadUi('desing/SettingWindow.ui', self)
+        self.initUI()
+
+    def initUI(self):
+        self.session = db_session.create_session()
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        self.pushButton.clicked.connect(self.back)
+        self.pushButton_2.clicked.connect(self.save_home)
+        self.pushButton_3.clicked.connect(self.save_school)
+        address = self.session.query(Address).filter(Address.type == 'school').first()
+        if address:
+            self.lineEdit_2.setText(address.address)
+        address = self.session.query(Address).filter(Address.type == 'home').first()
+        if address:
+            self.lineEdit.setText(address.address)
+
+    def save_school(self):
+        address = self.session.query(Address).filter(Address.type == 'school').first()
+        if address:
+            address.address = self.lineEdit_2.text()
+        else:
+            new_address = Address(
+                type='school',
+                coordinate_x=None,
+                coordinate_y=None,
+                address=self.lineEdit_2.text()
+            )
+            self.session.add(new_address)
+        self.session.commit()
+
+    def save_home(self):
+        address = self.session.query(Address).filter(Address.type == 'home').first()
+        if address:
+            address.address = self.lineEdit.text()
+        else:
+            new_address = Address(
+                type='home',
+                coordinate_x=None,
+                coordinate_y=None,
+                address=self.lineEdit.text()
+            )
+            self.session.add(new_address)
+        self.session.commit()
+
+    def back(self):
+        self.close()
+
+
+class InfoWindow(QMainWindow):
+    def __init__(self):
+        super(InfoWindow, self).__init__()
+        uic.loadUi('desing/InfoWindow.ui', self)
+        self.initUI()
+
+    def initUI(self):
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        self.pushButton.clicked.connect(self.back)
+
+    def back(self):
+        self.close()
+
+
+class LoginWindow(QMainWindow):
+    def __init__(self):
+        super(LoginWindow, self).__init__()
+        uic.loadUi('desing/LoginWindow.ui', self)
+        self.initUI()
+
+    def initUI(self):
+        cp = QDesktopWidget().availableGeometry().center()
+        self.move(QPoint(int(cp.x() - self.width() / 2), int(cp.y() - self.height() / 2)))
+        self.pushButton.clicked.connect(self.back)
+        self.web_engine = QWebEngineView(self)
+        channel = QWebChannel()
+        self.web_engine.page().setWebChannel(channel)
+        self.web_engine.setContextMenuPolicy(
+            Qt.NoContextMenu) # Загрузить локальный файл html
+        self.web_engine.load(QUrl('http://127.0.0.1:5000/simple/register'))
+        self.gridLayout.addWidget(self.web_engine)
+
+    def back(self):
+        self.close()
 
 
 def except_hook(cls, exception, traceback):
@@ -209,8 +231,9 @@ def except_hook(cls, exception, traceback):
 
 
 if __name__ == '__main__':
+    db_session.global_init("db/safe_school.db")
     app = QApplication(sys.argv)
-    form = Example()
-    form.show()
+    main = MainWindow()
+    main.show()
     sys.excepthook = except_hook
     sys.exit(app.exec())
