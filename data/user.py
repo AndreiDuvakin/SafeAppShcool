@@ -14,6 +14,3 @@ class User(SqlAlchemyBase):
     email = sqlalchemy.Column(sqlalchemy.String,
                               index=True, nullable=True)
     password = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-
-    def set_password(self, password):
-        self.password = generate_password_hash(password)

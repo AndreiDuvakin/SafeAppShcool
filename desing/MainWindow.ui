@@ -157,7 +157,7 @@ QPushButton:pressed {
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>120</y>
+      <y>20</y>
       <width>588</width>
       <height>100</height>
      </rect>
@@ -185,43 +185,36 @@ QPushButton:pressed {
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_5">
+   <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>380</x>
-      <y>10</y>
-      <width>200</width>
+      <x>0</x>
+      <y>195</y>
+      <width>588</width>
       <height>100</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Arial Black</family>
-      <pointsize>25</pointsize>
-      <weight>10</weight>
-      <italic>false</italic>
-      <bold>false</bold>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
     <property name="styleSheet">
-     <string notr="true">QPushButton {
-	font: 87 25pt &quot;Arial Black&quot;;
+     <string notr="true">Qlabel {
+	color: rgb(51, 176, 252);
 }</string>
     </property>
     <property name="text">
-     <string>Вход</string>
+     <string/>
     </property>
-    <property name="iconSize">
-     <size>
-      <width>130</width>
-      <height>130</height>
-     </size>
+    <property name="textFormat">
+     <enum>Qt::PlainText</enum>
     </property>
-    <property name="autoRepeatDelay">
-     <number>300</number>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>
