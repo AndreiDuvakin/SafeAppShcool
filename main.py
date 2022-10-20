@@ -86,7 +86,7 @@ class LoginWindow(QMainWindow):
                 surname=resp['surname'],
                 login=resp['login'],
                 email=self.lineEdit.text(),
-                password=self.lineEdit_2.text()
+                password=resp['hash']
             )
             self.session.add(user)
             self.session.commit()
