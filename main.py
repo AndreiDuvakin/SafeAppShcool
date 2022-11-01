@@ -36,7 +36,7 @@ class LoginWindow(QMainWindow):
     def open_user(self, user):
         flag = False
         global API_KEY
-        my_server = 'https://www.moonadiary.ru/school_app_check_auth'
+        my_server = 'https://moona.tech/school_app_check_auth'
         resp_param = {
             "login": user.email,
             "password": user.password
@@ -65,7 +65,7 @@ class LoginWindow(QMainWindow):
     def login(self):
         flag = False
         global API_KEY
-        my_server = 'https://www.moonadiary.ru/school_app_check_auth'
+        my_server = 'https://moona.tech/school_app_check_auth'
         resp_param = {
             "login": self.lineEdit.text(),
             "password": self.lineEdit_2.text()
@@ -340,7 +340,7 @@ class RegisterWindow(QMainWindow):
         self.web_engine.page().setWebChannel(channel)
         self.web_engine.setContextMenuPolicy(
             Qt.NoContextMenu)  # Загрузить локальный файл html
-        self.web_engine.load(QUrl('https://www.moonadiary.ru/simple/register'))
+        self.web_engine.load(QUrl('https://moona.tech/simple/register'))
         self.gridLayout.addWidget(self.web_engine)
 
     def back(self):
